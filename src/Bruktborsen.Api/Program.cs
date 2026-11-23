@@ -1,3 +1,4 @@
+using Scalar.AspNetCore;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Routing.Patterns;
@@ -89,6 +90,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
@@ -124,6 +126,10 @@ app.MapGroup("/api/auth")
         // AuthController handles POST /api/auth/register.
         route.RoutePattern = RoutePatternFactory.Parse(
             "/identity-register-disabled");
+
+        // Hide the disabled endpoint from OpenAPI and Scalar.
+        route.Metadata.Add(
+            new ExcludeFromDescriptionAttribute());
 
         route.RequestDelegate = context =>
         {
