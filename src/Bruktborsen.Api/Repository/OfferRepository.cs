@@ -71,34 +71,68 @@ public class OfferRepository : IOfferRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task AcceptOfferAsync(Offer offer)
+    public async Task<bool> AcceptOfferAsync(Offer offer)
     {
-        // All changes must be persisted atomically.
         await using var transaction =
             await _context.Database.BeginTransactionAsync();
 
         try
         {
-            var listing = offer.Listing;
+            var soldDate = DateTime.UtcNow;
 
-            offer.Status = OfferStatus.Accepted;
+            // Only one request may change the listing from Active to Sold.
+            int updatedListings = await _context.Listings
+                .Where(l =>
+                    l.Id == offer.ListingId &&
+                    l.Status == ListingStatus.Active)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(
+                        l => l.Status,
+                        ListingStatus.Sold)
+                    .SetProperty(
+                        l => l.SoldPrice,
+                        offer.Amount)
+                    .SetProperty(
+                        l => l.SoldDate,
+                        soldDate));
 
-            listing.Status = ListingStatus.Sold;
-            listing.SoldPrice = offer.Amount;
-            listing.SoldDate = DateTime.UtcNow;
-
-            foreach (var otherOffer in listing.Offers)
+            if (updatedListings != 1)
             {
-                if (otherOffer.Id != offer.Id &&
-                    otherOffer.Status == OfferStatus.Pending)
-                {
-                    otherOffer.Status = OfferStatus.Rejected;
-                }
+                await transaction.RollbackAsync();
+                return false;
             }
 
-            await _context.SaveChangesAsync();
+            // The selected offer must still be Pending.
+            int updatedOffers = await _context.Offers
+                .Where(o =>
+                    o.Id == offer.Id &&
+                    o.ListingId == offer.ListingId &&
+                    o.Status == OfferStatus.Pending)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(
+                        o => o.Status,
+                        OfferStatus.Accepted));
+
+            if (updatedOffers != 1)
+            {
+                await transaction.RollbackAsync();
+                return false;
+            }
+
+            // Reject all other pending offers for the same listing.
+            await _context.Offers
+                .Where(o =>
+                    o.ListingId == offer.ListingId &&
+                    o.Id != offer.Id &&
+                    o.Status == OfferStatus.Pending)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(
+                        o => o.Status,
+                        OfferStatus.Rejected));
 
             await transaction.CommitAsync();
+
+            return true;
         }
         catch
         {

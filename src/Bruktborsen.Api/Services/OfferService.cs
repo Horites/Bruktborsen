@@ -170,9 +170,11 @@ public class OfferService : IOfferService
             return OfferResult.OfferNotPending;
         }
 
-        await _offerRepository.AcceptOfferAsync(offer);
+        bool accepted = await _offerRepository.AcceptOfferAsync(offer);
 
-        return OfferResult.Success;
+        return accepted
+            ? OfferResult.Success
+            : OfferResult.ListingNotActive;
     }
 
     public async Task<OfferResult> RejectAsync(

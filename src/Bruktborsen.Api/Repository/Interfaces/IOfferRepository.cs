@@ -18,5 +18,5 @@ public interface IOfferRepository
 
     Task UpdateAsync();
 
-    Task AcceptOfferAsync(Offer offer);
+    Task<bool> AcceptOfferAsync(Offer offer);
 }
