@@ -1,13 +1,14 @@
-using Bruktborsen.Api.Data;
-using Bruktborsen.Api.Models;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.EntityFrameworkCore;
-using Bruktborsen.Api.Repository;
-using Bruktborsen.Api.Repository.Interfaces;
+using Bruktborsen.Api.Data;
+using Bruktborsen.Api.Models;
 using Bruktborsen.Api.Services;
+using Bruktborsen.Api.Repository;
 using Bruktborsen.Api.Services.Interfaces;
+using Bruktborsen.Api.Repository.Interfaces;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +39,8 @@ builder.Services.AddAuthorization();
 // Category repository and service
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IListingRepository, ListingRepository>();
+builder.Services.AddScoped<IListingService, ListingService>();
 
 // CORS for local Blazor development
 builder.Services.AddCors(options =>
@@ -62,7 +65,17 @@ builder.Services.AddCors(options =>
 });
 
 // Controllers and OpenAPI
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter(
+                allowIntegerValues: false
+            )
+        );
+    });
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
