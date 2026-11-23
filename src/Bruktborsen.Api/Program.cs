@@ -4,6 +4,10 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.EntityFrameworkCore;
+using Bruktborsen.Api.Repository;
+using Bruktborsen.Api.Repository.Interfaces;
+using Bruktborsen.Api.Services;
+using Bruktborsen.Api.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +34,10 @@ builder
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddAuthorization();
+
+// Category repository and service
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 // CORS for local Blazor development
 builder.Services.AddCors(options =>
