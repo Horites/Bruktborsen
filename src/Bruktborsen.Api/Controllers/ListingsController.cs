@@ -13,10 +13,15 @@ namespace Bruktborsen.Api.Controllers;
 public class ListingsController : ControllerBase
 {
     private readonly IListingService _listingService;
+    private readonly IAnalyticsService _analyticsService;
 
-    public ListingsController(IListingService listingService)
+    public ListingsController(
+        IListingService listingService,
+        IAnalyticsService analyticsService
+        )
     {
         _listingService = listingService;
+        _analyticsService = analyticsService;
     }
 
     // GET /api/listings
@@ -107,7 +112,7 @@ public class ListingsController : ControllerBase
         StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ListingDetailDto>> GetById(
-        int id)
+    int id)
     {
         var listing = await _listingService.GetByIdAsync(id);
 
@@ -116,7 +121,15 @@ public class ListingsController : ControllerBase
             return NotFound();
         }
 
-        return Ok(listing);
+        var assessment = await _analyticsService
+            .GetPriceAssessmentAsync(id);
+
+        var updatedListing = listing with
+        {
+            PriceAssessment = assessment?.Assessment ?? "Unknown"
+        };
+
+        return Ok(updatedListing);
     }
 
     // POST /api/listings

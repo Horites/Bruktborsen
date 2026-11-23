@@ -41,6 +41,12 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IListingRepository, ListingRepository>();
 builder.Services.AddScoped<IListingService, ListingService>();
+builder.Services.AddScoped<IOfferRepository, OfferRepository>();
+builder.Services.AddScoped<IOfferService, OfferService>();
+builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
+builder.Services.AddScoped<IFavoriteService, FavoriteService>();
+builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 
 // CORS for local Blazor development
 builder.Services.AddCors(options =>
@@ -135,7 +141,15 @@ if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
 
-    await SeedData.InitializeAsync(scope.ServiceProvider);
+    await SeedData.InitializeAsync(
+        scope.ServiceProvider
+        );
+
+    var context = scope.ServiceProvider
+    .GetRequiredService<ApplicationDbContext>();
+
+    await MarketSeedData.InitializeAsync(context);
+    await MarketInteractionSeedData.InitializeAsync(context);
 }
 
 app.Run();
